@@ -141,6 +141,12 @@ RUN apt-get update && \
     /usr/local/bin/anaconda3/bin/pip install PyOpenGL \
     				     	     PyOpenGL_accelerate \
 					     opencv-python
+
+# dlib
+RUN apt-get update && \
+    apt-get install -y cmake && \
+    /usr/local/bin/anaconda3/bin/pip install dlib
+
 ENV QT_X11_NO_MITSHM 1
 
 # tensorflow
