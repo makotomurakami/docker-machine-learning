@@ -161,12 +161,14 @@ RUN /usr/local/bin/anaconda3/bin/pip install http://download.pytorch.org/whl/cu9
 RUN /usr/local/bin/anaconda3/bin/pip install torchvision
 
 # pycharm
-RUN wget https://download.jetbrains.com/python/pycharm-community-2018.1.tar.gz && \
-    tar xvfz pycharm-community-2018.1.tar.gz --directory /opt && \
-    rm pycharm-community-2018.1.tar.gz && \
+RUN wget https://download.jetbrains.com/python/pycharm-community-2018.3.2.tar.gz && \
+    tar xvfz pycharm-community-2018.3.2.tar.gz --directory /opt && \
+    rm pycharm-community-2018.3.2.tar.gz && \
     apt-get update && \
     apt-get install -y libxtst6 \
-    	    	       fonts-takao
+    	    	       fonts-takao && \
+    /usr/local/bin/anaconda3/bin/python3 /opt/pycharm-community-2018.3.2/helpers/pydev/setup_cython.py build_ext --inplace
+		
 # printer
 # RUN wget http://download.brother.com/welcome/dlf101123/brgenml1lpr-3.1.0-1.i386.deb
 #     wget http://download.brother.com/welcome/dlf101125/brgenml1cupswrapper-3.1.0-1.i386.deb
@@ -189,4 +191,4 @@ RUN apt-get update && \
     echo ${user}:${user} | chpasswd
     
 # CMD /bin/bash
-CMD /opt/pycharm-community-2018.1/bin/pycharm.sh
+CMD /opt/pycharm-community-2018.3.2/bin/pycharm.sh
