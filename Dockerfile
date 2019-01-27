@@ -118,7 +118,10 @@ RUN apt-get update && \
 		       emacs-mozc \
 		       emacs-mozc-bin \
       		       xclip
+
 # anaconda
+ARG anaconda_dir="/usr/local/bin/anaconda3"
+ARG anaconda_file="Anaconda3-5.1.0-Linux-x86_64.sh"
 RUN apt-get update && \
     apt-get install -y wget \
     	    	       bzip2 \
@@ -127,56 +130,117 @@ RUN apt-get update && \
 		       libsm6 \
 		       libxrender1 \
        		       libgl1-mesa-dev && \
-    wget http://repo.continuum.io/archive/Anaconda3-5.1.0-Linux-x86_64.sh && \
-    bash Anaconda3-5.1.0-Linux-x86_64.sh -b -p /usr/local/bin/anaconda3 && \
-    rm Anaconda3-5.1.0-Linux-x86_64.sh
+    wget http://repo.continuum.io/archive/${anaconda_file} && \
+    bash ${anaconda_file} -b -p ${anaconda_dir} && \
+    rm ${anaconda_file}
+ENV PATH ${anaconda_dir}/bin:$PATH
 
-ENV PATH $PATH:/usr/local/bin/anaconda3/bin
-
-# pyopengl and opencv
+# pyopengl
 RUN apt-get update && \
     apt-get install -y freeglut3-dev \
  		       gcc && \
-    /usr/local/bin/anaconda3/bin/pip install --upgrade pip && \
-    /usr/local/bin/anaconda3/bin/pip install PyOpenGL \
-    				     	     PyOpenGL_accelerate \
-					     opencv-python
+    pip install --upgrade pip && \
+    pip install PyOpenGL \
+    		PyOpenGL_accelerate
 
 # dlib
 RUN apt-get update && \
     apt-get install -y cmake && \
-    /usr/local/bin/anaconda3/bin/pip install dlib
+    pip install dlib
 
 ENV QT_X11_NO_MITSHM 1
 
+# pytorch
+RUN pip install http://download.pytorch.org/whl/cu90/torch-1.0.0-cp36-cp36m-linux_x86_64.whl && \
+    pip install torchvision && \
+    pip install torchsummary
+
 # tensorflow
-RUN /usr/local/bin/anaconda3/bin/pip install --ignore-installed --upgrade https://storage.googleapis.com/tensorflow/linux/gpu/tensorflow_gpu-1.6.0-cp36-cp36m-linux_x86_64.whl
+RUN pip install tensorflow-gpu
 
 # keras
-RUN /usr/local/bin/anaconda3/bin/pip install keras
+RUN pip install keras
 
-# pytorch
-RUN /usr/local/bin/anaconda3/bin/pip install http://download.pytorch.org/whl/cu90/torch-1.0.0-cp36-cp36m-linux_x86_64.whl
- 
-RUN /usr/local/bin/anaconda3/bin/pip install torchvision
+# gensim, word2vec
+RUN pip install gensim
+
+# cmake, gcc
+# RUN apt-get update && \
+#     apt-get install -y cmake \
+#     	    	       gcc gcc-c++
+
+# eigen
+ARG eigen_version="3.3.7"
+RUN apt-get update && \
+    apt-get install -y wget && \
+    wget http://bitbucket.org/eigen/eigen/get/${eigen_version}.tar.gz && \
+    tar xvfz ${eigen_version}.tar.gz -C /usr/local/include && \
+    rm ${eigen_version}.tar.gz
+
+# build-essential, cmake
+RUN apt-get update && \
+    apt-get install -y build-essential \
+    	    	       cmake
+# opencv
+ARG opencv_version="3.4.3"
+# ARG opencv_version="4.0.0"
+RUN apt-get update && \
+    apt-get install -y libgtk2.0-dev \
+		       pkg-config \
+		       libavcodec-dev \
+		       libavformat-dev \
+		       libswscale-dev \
+#		       python-dev \
+#		       python-numpy \
+		       libtbb2 \
+		       libtbb-dev \
+		       libjpeg-dev \
+		       libpng-dev \
+		       libtiff-dev \
+		       libjasper-dev \
+		       libdc1394-22-dev
+RUN mkdir opencv_tmp && \
+    cd opencv_tmp && \
+    git clone https://github.com/opencv/opencv.git && \
+    git clone https://github.com/opencv/opencv_contrib.git && \
+    cd opencv_contrib && \
+    git checkout ${opencv_version} && \
+    cd ../opencv && \
+    git checkout ${opencv_version} && \    
+    mkdir build && \
+    cd build && \
+    cmake -D CMAKE_BUILD_TYPE=Release \
+    	  -D CMAKE_INSTALL_PREFIX=${anaconda_dir} \
+	  -D OPENCV_EXTRA_MODULES_PATH=../../opencv_contrib/modules \
+	  -D BUILD_DOCS=ON \
+ 	  -D BUILD_EXAMPLES=ON \
+	  -D BUILD_opencv_python3=ON \
+	  -D BUILD_opencv_python2=OFF \	  
+	  -D PYTHON_DEFAULT_EXECUTABLE=${anaconda_dir}/bin/python \
+    	  -D PYTHON3_EXECUTABLE=${anaconda_dir}/bin/python \
+    	  -D PYTHON3_LIBRARIES=${anaconda_dir}/lib/libpython3.6m.so \
+    	  -D PYTHON3_NUMPY_INCLUDE_DIRS=${anaconda_dir}/lib/python3.6/site-packages/numpy/core/include \
+	  -D PYTHON3_PACKAGES_PATH=${anaconda_dir}/lib/python3.6/site-packages \
+    	  -D WITH_EIGEN=ON \
+	  -D EIGEN_INCLUDE_PATH=/usr/local/include/eigen-eigen-323c052e1731 \
+	  .. && \
+    make -j7 && \
+#    cd doc/ && \
+#    make -j7 doxygen && \
+    make install && \
+    ldconfig -v
+#    ln -s ${anaconda_dir}/lib/python3.6/site-packages/cv2.cpython-36m-x86_64-linux-gnu.so ${anaconda_dir}/lib/python3.6/site-packages/cv2.so
 
 # pycharm
-RUN wget https://download.jetbrains.com/python/pycharm-community-2018.3.2.tar.gz && \
-    tar xvfz pycharm-community-2018.3.2.tar.gz --directory /opt && \
-    rm pycharm-community-2018.3.2.tar.gz && \
+ARG pycharm_version="community-2018.3.3"
+RUN wget https://download.jetbrains.com/python/pycharm-${pycharm_version}.tar.gz && \
+    tar xvfz pycharm-${pycharm_version}.tar.gz --directory /opt && \
+    rm pycharm-${pycharm_version}.tar.gz && \
     apt-get update && \
     apt-get install -y libxtst6 \
     	    	       fonts-takao && \
-    /usr/local/bin/anaconda3/bin/python3 /opt/pycharm-community-2018.3.2/helpers/pydev/setup_cython.py build_ext --inplace
-		
-# printer
-# RUN wget http://download.brother.com/welcome/dlf101123/brgenml1lpr-3.1.0-1.i386.deb
-#     wget http://download.brother.com/welcome/dlf101125/brgenml1cupswrapper-3.1.0-1.i386.deb
-# RUN dpkg -i --force-all brgenml1lpr-3.1.0-1.i386.deb
-# RUN dpkg -i --force-all brgenml1cupswrapper-3.1.0-1.i386.deb
-# RUN apt-get install -y cups
-# RUN rm brgenml1lpr-3.1.0-1.i386.deb
-#    rm brgenml1cupswrapper-3.1.0-1.i386.deb
+    python3 /opt/pycharm-${pycharm_version}/helpers/pydev/setup_cython.py build_ext --inplace
+ENV PATH $PATH:/opt/pycharm-${pycharm_version}/bin
 
 # x window
 ARG uid
@@ -186,9 +250,8 @@ ARG group
 RUN apt-get update && \
     apt-get install -y sudo && \
     groupadd -g ${gid} ${group} && \
-#    useradd -u ${uid} -g ${gid} -r ${user}
     useradd -u ${uid} -g ${gid} -r ${user} -G sudo && \
     echo ${user}:${user} | chpasswd
     
 # CMD /bin/bash
-CMD /opt/pycharm-community-2018.3.2/bin/pycharm.sh
+CMD pycharm.sh
