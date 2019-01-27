@@ -181,24 +181,39 @@ RUN apt-get update && \
 RUN apt-get update && \
     apt-get install -y build-essential \
     	    	       cmake
+
+# pycharm
+ARG pycharm_version="community-2018.3.3"
+RUN wget https://download.jetbrains.com/python/pycharm-${pycharm_version}.tar.gz && \
+    tar xvfz pycharm-${pycharm_version}.tar.gz --directory /opt && \
+    rm pycharm-${pycharm_version}.tar.gz && \
+    apt-get update && \
+    apt-get install -y libxtst6 \
+    	    	       fonts-takao && \
+    python3 /opt/pycharm-${pycharm_version}/helpers/pydev/setup_cython.py build_ext --inplace
+ENV PATH $PATH:/opt/pycharm-${pycharm_version}/bin
+
 # opencv
-ARG opencv_version="3.4.3"
-# ARG opencv_version="4.0.0"
+# ARG opencv_version="3.4.3"
+ARG opencv_version="4.0.0"
 RUN apt-get update && \
-    apt-get install -y libgtk2.0-dev \
-		       pkg-config \
+    apt-get install -y pkg-config \
+		       libtbb2 \
+		       libtbb-dev \
+		       libjasper-dev \
+		       libdc1394-22-dev \
+		       libjpeg-dev \
+     	     	       libpng-dev \
+		       libtiff-dev \
 		       libavcodec-dev \
 		       libavformat-dev \
 		       libswscale-dev \
-#		       python-dev \
-#		       python-numpy \
-		       libtbb2 \
-		       libtbb-dev \
-		       libjpeg-dev \
-		       libpng-dev \
-		       libtiff-dev \
-		       libjasper-dev \
-		       libdc1394-22-dev
+		       libv4l-dev \
+		       libxvidcore-dev \
+		       libx264-dev \
+		       libgtk-3-dev \
+		       libatlas-base-dev \
+		       gfortran
 RUN mkdir opencv_tmp && \
     cd opencv_tmp && \
     git clone https://github.com/opencv/opencv.git && \
@@ -209,9 +224,10 @@ RUN mkdir opencv_tmp && \
     git checkout ${opencv_version} && \    
     mkdir build && \
     cd build && \
-    cmake -D CMAKE_BUILD_TYPE=Release \
+    cmake -D CMAKE_BUILD_TYPE=RELEASE \
     	  -D CMAKE_INSTALL_PREFIX=${anaconda_dir} \
 	  -D OPENCV_EXTRA_MODULES_PATH=../../opencv_contrib/modules \
+	  -D OPENCV_ENABLE_NONFREE=ON \	  
 	  -D BUILD_DOCS=ON \
  	  -D BUILD_EXAMPLES=ON \
 	  -D BUILD_opencv_python3=ON \
@@ -228,19 +244,9 @@ RUN mkdir opencv_tmp && \
 #    cd doc/ && \
 #    make -j7 doxygen && \
     make install && \
-    ldconfig -v
-#    ln -s ${anaconda_dir}/lib/python3.6/site-packages/cv2.cpython-36m-x86_64-linux-gnu.so ${anaconda_dir}/lib/python3.6/site-packages/cv2.so
-
-# pycharm
-ARG pycharm_version="community-2018.3.3"
-RUN wget https://download.jetbrains.com/python/pycharm-${pycharm_version}.tar.gz && \
-    tar xvfz pycharm-${pycharm_version}.tar.gz --directory /opt && \
-    rm pycharm-${pycharm_version}.tar.gz && \
-    apt-get update && \
-    apt-get install -y libxtst6 \
-    	    	       fonts-takao && \
-    python3 /opt/pycharm-${pycharm_version}/helpers/pydev/setup_cython.py build_ext --inplace
-ENV PATH $PATH:/opt/pycharm-${pycharm_version}/bin
+    ldconfig -v && \
+    ln -s ${anaconda_dir}/python/cv2/python-3.6/cv2.cpython-36m-x86_64-linux-gnu.so ${anaconda_dir}/lib/python3.6/site-packages/cv2.so
+ENV NO_AT_BRIDGE 1
 
 # x window
 ARG uid
