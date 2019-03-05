@@ -1,3 +1,8 @@
+######## Ubuntu 16.04 ########
+######## CUDA 9.0 + OpenGL (glvnd 1.1) ########
+
+######## OpenGL(glvnd 1.1) runtime 1st half ########
+######## glvnd/runtime/Dockerfile 1st half ########
 # Build libglvnd
 FROM ubuntu:16.04 as glvnd
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -13,8 +18,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         libx11-dev \
         x11proto-gl-dev && \
     rm -rf /var/lib/apt/lists/*
+ARG LIBGLVND_VERSION=v1.1.0
 WORKDIR /opt/libglvnd
-RUN git clone --branch=v1.0.0 https://github.com/NVIDIA/libglvnd.git . && \
+RUN git clone --branch="${LIBGLVND_VERSION}" https://github.com/NVIDIA/libglvnd.git . && \
     ./autogen.sh && \
     ./configure --prefix=/usr/local --libdir=/usr/local/lib/x86_64-linux-gnu && \
     make -j"$(nproc)" install-strip && \
@@ -32,6 +38,8 @@ RUN make distclean && \
     make -j"$(nproc)" install-strip && \
     find /usr/local/lib/i386-linux-gnu -type f -name 'lib*.la' -delete
 
+######## OpenGL(glvnd 1.1) devel 1st half ########
+######## glvnd/devel/Dockerfile 1st half ########
 # Download the official headers from github.com/KhronosGroup
 FROM ubuntu:16.04 as khronos
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -47,21 +55,23 @@ RUN git clone https://github.com/KhronosGroup/EGL-Registry.git && cd EGL-Registr
 RUN git clone --branch=mesa-17.3.3 --depth=1 https://anongit.freedesktop.org/git/mesa/mesa.git && cd mesa && \
     cp include/GL/gl.h include/GL/gl_mangle.h /usr/local/include/GL/
 
-
-# cuda
+######## cuda 9.0 devel ########
+######## cudnn 7.4.1.5 ########
+######## 9.0/devel/cudnn7/Dockerfile ########
+# ARG repository=nvidia/cuda
+# FROM ${repository}:9.0-devel-ubuntu16.04
 FROM nvidia/cuda:9.0-devel-ubuntu16.04
 LABEL maintainer "NVIDIA CORPORATION <cudatools@nvidia.com>"
-
-# cudnn
-ENV CUDNN_VERSION 7.0.5.15
+ENV CUDNN_VERSION 7.4.1.5
 LABEL com.nvidia.cudnn.version="${CUDNN_VERSION}"
-
 RUN apt-get update && apt-get install -y --no-install-recommends \
             libcudnn7=$CUDNN_VERSION-1+cuda9.0 \
             libcudnn7-dev=$CUDNN_VERSION-1+cuda9.0 && \
+    apt-mark hold libcudnn7 && \
     rm -rf /var/lib/apt/lists/*
 
-# opengl base
+######## OpenGL(glvnd 1.1) base ########
+######## base/Dockerfile ########
 RUN dpkg --add-architecture i386 && \
     apt-get update && apt-get install -y --no-install-recommends \
         libxau6 libxau6:i386 \
@@ -78,7 +88,8 @@ ENV NVIDIA_DRIVER_CAPABILITIES \
 # Required for non-glvnd setups.
 ENV LD_LIBRARY_PATH /usr/lib/x86_64-linux-gnu:/usr/lib/i386-linux-gnu${LD_LIBRARY_PATH:+:${LD_LIBRARY_PATH}}
 
-# opengl runtime
+######## OpenGL(glvnd 1.1) runtime 2st half ########
+######## glvnd/runtime/Dockerfile 2st half ########
 COPY --from=glvnd /usr/local/lib/x86_64-linux-gnu /usr/local/lib/x86_64-linux-gnu
 COPY --from=glvnd /usr/local/lib/i386-linux-gnu /usr/local/lib/i386-linux-gnu
 COPY 10_nvidia.json /usr/local/share/glvnd/egl_vendor.d/10_nvidia.json
@@ -87,7 +98,8 @@ RUN echo '/usr/local/lib/x86_64-linux-gnu' >> /etc/ld.so.conf.d/glvnd.conf && \
     ldconfig
 ENV LD_LIBRARY_PATH /usr/local/lib/x86_64-linux-gnu:/usr/local/lib/i386-linux-gnu${LD_LIBRARY_PATH:+:${LD_LIBRARY_PATH}}
 
-# opengl devel
+######## OpenGL(glvnd 1.1) devel 2nd half ########
+######## glvnd/devel/Dockerfile 2nd half ########
 RUN apt-get update && apt-get install -y --no-install-recommends \
         pkg-config \
         libxau-dev libxau-dev:i386 \
@@ -98,7 +110,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     rm -rf /var/lib/apt/lists/*
 COPY --from=khronos /usr/local/include /usr/local/include
 COPY usr /usr
-
 
 # common 
 RUN apt-get update && \
@@ -121,7 +132,7 @@ RUN apt-get update && \
 
 # anaconda
 ARG anaconda_dir="/usr/local/bin/anaconda3"
-ARG anaconda_file="Anaconda3-5.1.0-Linux-x86_64.sh"
+ARG anaconda_file="Anaconda3-5.2.0-Linux-x86_64.sh"
 RUN apt-get update && \
     apt-get install -y wget \
     	    	       bzip2 \
@@ -164,17 +175,13 @@ RUN pip install keras
 # gensim, word2vec
 RUN pip install gensim
 
-# cmake, gcc
-# RUN apt-get update && \
-#     apt-get install -y cmake \
-#     	    	       gcc gcc-c++
-
 # eigen
 ARG eigen_version="3.3.7"
 RUN apt-get update && \
     apt-get install -y wget && \
     wget http://bitbucket.org/eigen/eigen/get/${eigen_version}.tar.gz && \
     tar xvfz ${eigen_version}.tar.gz -C /usr/local/include && \
+    mv /usr/local/include/eigen* /usr/local/include/eigen && \    
     rm ${eigen_version}.tar.gz
 
 # build-essential, cmake
@@ -194,8 +201,7 @@ RUN wget https://download.jetbrains.com/python/pycharm-${pycharm_version}.tar.gz
 ENV PATH $PATH:/opt/pycharm-${pycharm_version}/bin
 
 # opencv
-# ARG opencv_version="3.4.3"
-ARG opencv_version="4.0.0"
+ARG opencv_version="4.0.1"
 RUN apt-get update && \
     apt-get install -y pkg-config \
 		       libtbb2 \
@@ -213,7 +219,12 @@ RUN apt-get update && \
 		       libx264-dev \
 		       libgtk-3-dev \
 		       libatlas-base-dev \
-		       gfortran
+		       gfortran \
+		       doxygen \
+    	    	       doxygen-gui \
+		       graphviz \
+		       libopenblas-dev \
+		       liblapacke-dev		       
 RUN mkdir opencv_tmp && \
     cd opencv_tmp && \
     git clone https://github.com/opencv/opencv.git && \
@@ -238,11 +249,19 @@ RUN mkdir opencv_tmp && \
     	  -D PYTHON3_NUMPY_INCLUDE_DIRS=${anaconda_dir}/lib/python3.6/site-packages/numpy/core/include \
 	  -D PYTHON3_PACKAGES_PATH=${anaconda_dir}/lib/python3.6/site-packages \
     	  -D WITH_EIGEN=ON \
-	  -D EIGEN_INCLUDE_PATH=/usr/local/include/eigen-eigen-323c052e1731 \
+	  -D EIGEN_INCLUDE_PATH=/usr/local/include/eigen \
+	  -D WITH_OPENGL=ON \
+	  -D WITH_TBB=ON \
+	  -D WITH_OPENMP=ON \
+	  -D WITH_OPENCL=ON \
+	  -D WITH_OPENCL_SVM=ON \
+	  -D WITH_LAPACK=ON \	  
+	  -D WITH_CUDA=ON \
+	  -D WITH_CUFFT=ON \
+	  -D WITH_CUBLAS=ON \
+	  -D WITH_NVCUVID=ON \
 	  .. && \
     make -j7 && \
-#    cd doc/ && \
-#    make -j7 doxygen && \
     make install && \
     ldconfig -v && \
     ln -s ${anaconda_dir}/python/cv2/python-3.6/cv2.cpython-36m-x86_64-linux-gnu.so ${anaconda_dir}/lib/python3.6/site-packages/cv2.so
@@ -256,8 +275,8 @@ ARG group
 RUN apt-get update && \
     apt-get install -y sudo && \
     groupadd -g ${gid} ${group} && \
-    useradd -u ${uid} -g ${gid} -r ${user} -G sudo && \
+    useradd -u ${uid} -g ${gid} -r ${user} -G sudo,video && \
     echo ${user}:${user} | chpasswd
-    
+
 # CMD /bin/bash
 CMD pycharm.sh
