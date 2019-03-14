@@ -161,20 +161,6 @@ RUN apt-get update && \
 
 ENV QT_X11_NO_MITSHM 1
 
-# pytorch
-RUN pip install http://download.pytorch.org/whl/cu90/torch-1.0.0-cp36-cp36m-linux_x86_64.whl && \
-    pip install torchvision && \
-    pip install torchsummary
-
-# tensorflow
-RUN pip install tensorflow-gpu
-
-# keras
-RUN pip install keras
-
-# gensim, word2vec
-RUN pip install gensim
-
 # eigen
 ARG eigen_version="3.3.7"
 RUN apt-get update && \
@@ -188,17 +174,6 @@ RUN apt-get update && \
 RUN apt-get update && \
     apt-get install -y build-essential \
     	    	       cmake
-
-# pycharm
-ARG pycharm_version="community-2018.3.3"
-RUN wget https://download.jetbrains.com/python/pycharm-${pycharm_version}.tar.gz && \
-    tar xvfz pycharm-${pycharm_version}.tar.gz --directory /opt && \
-    rm pycharm-${pycharm_version}.tar.gz && \
-    apt-get update && \
-    apt-get install -y libxtst6 \
-    	    	       fonts-takao && \
-    python3 /opt/pycharm-${pycharm_version}/helpers/pydev/setup_cython.py build_ext --inplace
-ENV PATH $PATH:/opt/pycharm-${pycharm_version}/bin
 
 # opencv
 ARG opencv_version="4.0.1"
@@ -266,6 +241,31 @@ RUN mkdir opencv_tmp && \
     ldconfig -v && \
     ln -s ${anaconda_dir}/python/cv2/python-3.6/cv2.cpython-36m-x86_64-linux-gnu.so ${anaconda_dir}/lib/python3.6/site-packages/cv2.so
 ENV NO_AT_BRIDGE 1
+
+# pytorch
+RUN pip install http://download.pytorch.org/whl/cu90/torch-1.0.0-cp36-cp36m-linux_x86_64.whl && \
+    pip install torchvision && \
+    pip install torchsummary
+
+# tensorflow
+RUN pip install tensorflow-gpu
+
+# keras
+RUN pip install keras
+
+# gensim, word2vec
+RUN pip install gensim
+
+# pycharm
+ARG pycharm_version="community-2018.3.5"
+RUN wget https://download.jetbrains.com/python/pycharm-${pycharm_version}.tar.gz && \
+    tar xvfz pycharm-${pycharm_version}.tar.gz --directory /opt && \
+    rm pycharm-${pycharm_version}.tar.gz && \
+    apt-get update && \
+    apt-get install -y libxtst6 \
+    	    	       fonts-takao && \
+    python3 /opt/pycharm-${pycharm_version}/helpers/pydev/setup_cython.py build_ext --inplace
+ENV PATH $PATH:/opt/pycharm-${pycharm_version}/bin
 
 # x window
 ARG uid
