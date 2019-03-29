@@ -257,7 +257,7 @@ RUN pip install keras
 RUN pip install gensim
 
 # pycharm
-ARG pycharm_version="community-2018.3.5"
+ARG pycharm_version="community-2019.1"
 RUN wget https://download.jetbrains.com/python/pycharm-${pycharm_version}.tar.gz && \
     tar xvfz pycharm-${pycharm_version}.tar.gz --directory /opt && \
     rm pycharm-${pycharm_version}.tar.gz && \
